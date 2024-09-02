@@ -15,7 +15,7 @@ from typing import List, Optional
 
 class SearchRequest(BaseModel):
     image: str = Field(..., description="Base64 encoded image string")
-    keyword: Optional[List[float]] = Field(None, description="Keyword for search, as a list of floats", example=[1.0, 0.0, 0.0])
+    keyword: Optional[List[float]] = Field(None, description="Optional keyword for search, as a list of floats", example=[1.0, 0.0, 0.0])
 
 class Inference:
     def __init__(self):
@@ -74,18 +74,17 @@ class Inference:
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Invalid base64 string or image processing error: {e}")
 
-    def jpg_compress(self, image):
+ def jpg_compress(self, image):
         encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
-        result, image = cv2.imencode('.jpg', image, encode_param)
+        result, compressed_image = cv2.imencode('.jpg', image, encode_param)
         if not result:
             raise RuntimeError('Could not encode image!')
-        return image
+        return cv2.imdecode(compressed_image, cv2.IMREAD_COLOR)
 
     def to_numpy(self, tensor):
         return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
 
     def searching(self, base64_string, keyword=None, top_k=10):
-
         img_trans = transforms.Compose([
             transforms.Resize((224, 224)),
             transforms.ToTensor(),
@@ -93,7 +92,14 @@ class Inference:
         ])
         image = img_trans(self.base64_2_image(base64_string))
         if keyword is None:
-            keyword = [0 for _ in range(17)]
+            keyword = [0.0 for _ in range(17)]  # 기본값을 0.0으로 설정
+        else:
+            # keyword의 길이가 17이 아닌 경우 처리
+            if len(keyword) < 17:
+                keyword.extend([0.0] * (17 - len(keyword)))
+            elif len(keyword) > 17:
+                keyword = keyword[:17]
+        
         keyword = torch.tensor(keyword, dtype=torch.float32)
 
         ort_session = onnxruntime.InferenceSession('./model_weight/ImageSearchModel.onnx', providers=['CPUExecutionProvider'])
@@ -114,8 +120,10 @@ async def search_image(request: SearchRequest = Body(...)):
     inf = Inference()
     try:
         result = inf.searching(request.image, request.keyword)
+    except HTTPException as he:
+        raise he
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
 
     return JSONResponse(content={"results": result})
 
