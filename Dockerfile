@@ -1,31 +1,20 @@
-FROM python:3.11-alpine
+FROM python:3.11-slim
 
 ARG UID=1000
 ARG GID=1000
 
-# Install necessary packages for building Python packages
-RUN apk update && \
-    apk add --no-cache \
-    build-base \
-    libffi-dev \
-    openssl-dev \
-    musl-dev \
-    curl
-
-# Add user and group
-RUN addgroup -g "${GID}" appgroup && \
-    adduser -u "${UID}" -G appgroup -h /home/appuser -D appuser
+RUN groupadd -g "${GID}" appgroup && \
+    useradd --create-home --no-log-init -u "${UID}" -g "${GID}" appuser
 
 WORKDIR /app
 
-# Upgrade pip
-RUN pip install --no-cache-dir --upgrade pip
+RUN apt-get update && \
+    apt-get install -y curl && \
+    pip install --upgrade pip
 
-# Copy requirements and install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Download the file and move it to the model_weight folder
 RUN mkdir -p model_weight && \
     curl -L "https://drive.usercontent.google.com/download?id=1ii-bDWoaUOWO8RB5xo11TS67olha66-w&confirm=xxx" -o ImageSearchModel.onnx && \
     mv ImageSearchModel.onnx model_weight/
