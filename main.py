@@ -83,19 +83,23 @@ class Inference:
         top_ten_place = [self.label_dict[label] for label in top_ten]
         return top_ten_place
 
+
 app = FastAPI()
 
-@app.get("/", response_class=JSONResponse)
-async def get_result(image: str, keyword: str = Query(None, description="Keyword for search, as a comma-separated list", example="1,0,0,...")):
-    try:
-        # Convert the keyword string to a list of floats
-        keyword_list = [float(k) for k in keyword.split(',')] if keyword else None
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Keyword must be a comma-separated list of numbers.")
-    
+class SearchRequest(BaseModel):
+    image: str
+    keyword: Optional[List[float]] = None
+
+class Inference:
+    def searching(self, image: str, keyword: List[float]):
+        # Implement your searching logic here
+        pass
+
+@app.post("/search", response_class=JSONResponse)
+async def search_image(request: SearchRequest):
     inf = Inference()
     try:
-        result = inf.searching(image, keyword_list)
+        result = inf.searching(request.image, request.keyword)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
@@ -103,4 +107,5 @@ async def get_result(image: str, keyword: str = Query(None, description="Keyword
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+    
