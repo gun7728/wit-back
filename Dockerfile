@@ -3,15 +3,24 @@ FROM python:3.11-alpine
 ARG UID=1000
 ARG GID=1000
 
+# Install necessary packages for building Python packages
+RUN apk update && \
+    apk add --no-cache \
+    build-base \
+    libffi-dev \
+    openssl-dev \
+    curl
+
+# Add user and group
 RUN addgroup -g "${GID}" appgroup && \
     adduser -u "${UID}" -G appgroup -h /home/appuser -D appuser
 
 WORKDIR /app
 
-RUN apk update && \
-    apk add --no-cache curl && \
-    pip install --no-cache-dir --upgrade pip
+# Upgrade pip
+RUN pip install --no-cache-dir --upgrade pip
 
+# Copy requirements and install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
