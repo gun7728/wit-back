@@ -1,21 +1,21 @@
-FROM python:3.11-slim-buster
+FROM python:3.11-alpine
 
 ARG UID=1000
 ARG GID=1000
 
-RUN groupadd -g "${GID}" appgroup && \
-    useradd --create-home --no-log-init -u "${UID}" -g "${GID}" appuser
+RUN addgroup -g "${GID}" appgroup && \
+    adduser -u "${UID}" -G appgroup -h /home/appuser -D appuser
 
 WORKDIR /app
 
-RUN apt-get update && \
-    apt-get install -y curl && \  # Install curl
-    pip install --upgrade pip
+RUN apk update && \
+    apk add --no-cache curl && \
+    pip install --no-cache-dir --upgrade pip
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Download the file and place it into the model_weight folder
+# Download the file and move it to the model_weight folder
 RUN mkdir -p model_weight && \
     curl -L "https://drive.usercontent.google.com/download?id=1ii-bDWoaUOWO8RB5xo11TS67olha66-w&confirm=xxx" -o ImageSearchModel.onnx && \
     mv ImageSearchModel.onnx model_weight/
