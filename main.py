@@ -12,7 +12,6 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
-
 class SearchRequest(BaseModel):
     image: str = Field(..., description="Base64 encoded image string")
     keyword: Optional[List[float]] = Field(None, description="Optional keyword for search, as a list of floats", example=[1.0, 0.0, 0.0])
@@ -47,7 +46,7 @@ class Inference:
 
     def base64_2_image(self, base64_string):
         try:
-           # base64 문자열에서 헤더 제거 (있는 경우)
+            # base64 문자열에서 헤더 제거 (있는 경우)
             if ',' in base64_string:
                 base64_string = base64_string.split(',')[1]
             
@@ -72,9 +71,9 @@ class Inference:
             
             return image
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Invalid base64 string or image processing error: {e}")
+            raise HTTPException(status_code=400, detail=f"Invalid base64 string or image processing error: {str(e)}")
 
- def jpg_compress(self, image):
+    def jpg_compress(self, image):
         encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
         result, compressed_image = cv2.imencode('.jpg', image, encode_param)
         if not result:
