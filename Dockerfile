@@ -9,6 +9,7 @@ RUN apk update && \
     build-base \
     libffi-dev \
     openssl-dev \
+    musl-dev \
     curl
 
 # Add user and group
