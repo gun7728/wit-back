@@ -47,12 +47,29 @@ class Inference:
 
     def base64_2_image(self, base64_string):
         try:
-            image = Image.open(io.BytesIO(base64.b64decode(base64_string)))
-            image = np.array(image)
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            image = self.jpg_compress(image)
-            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-            image = Image.fromarray(image)
+           # base64 문자열에서 헤더 제거 (있는 경우)
+            if ',' in base64_string:
+                base64_string = base64_string.split(',')[1]
+            
+            # base64 디코딩
+            image_bytes = base64.b64decode(base64_string)
+            
+            # 이미지 열기
+            image = Image.open(io.BytesIO(image_bytes))
+            
+            # RGB로 변환 (이미지가 다른 모드인 경우)
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+            
+            # numpy 배열로 변환
+            image_np = np.array(image)
+            
+            # JPEG 압축
+            image_np = self.jpg_compress(image_np)
+            
+            # 다시 PIL Image로 변환
+            image = Image.fromarray(image_np)
+            
             return image
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Invalid base64 string or image processing error: {e}")
