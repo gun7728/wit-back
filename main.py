@@ -7,8 +7,15 @@ import torch
 import numpy as np
 import PIL.Image as Image
 from torchvision import transforms
-from fastapi import FastAPI, Query, HTTPException
+from fastapi import FastAPI, HTTPException, Body
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+from typing import List, Optional
+
+
+class SearchRequest(BaseModel):
+    image: str = Field(..., description="Base64 encoded image string")
+    keyword: Optional[List[float]] = Field(None, description="Keyword for search, as a list of floats", example=[1.0, 0.0, 0.0])
 
 class Inference:
     def __init__(self):
@@ -85,17 +92,11 @@ class Inference:
 
 app = FastAPI()
 
-@app.get("/", response_class=JSONResponse)
-async def get_result(image: str, keyword: str = Query(None, description="Keyword for search, as a comma-separated list", example="1,0,0,...")):
-    try:
-        # Convert the keyword string to a list of floats
-        keyword_list = [float(k) for k in keyword.split(',')] if keyword else None
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Keyword must be a comma-separated list of numbers.")
-
+@app.post("/search", response_class=JSONResponse)
+async def search_image(request: SearchRequest = Body(...)):
     inf = Inference()
     try:
-        result = inf.searching(image, keyword_list)
+        result = inf.searching(request.image, request.keyword)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
