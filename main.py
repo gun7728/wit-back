@@ -91,7 +91,7 @@ class Inference:
         ])
         image = img_trans(self.base64_2_image(base64_string))
         if keyword is None:
-            keyword = [0.0 for _ in range(17)]  # 기본값을 0.0으로 설정
+            keyword = [1 for _ in range(17)]  # 기본값을 0.0으로 설정
         else:
             # keyword의 길이가 17이 아닌 경우 처리
             if len(keyword) < 17:
@@ -108,7 +108,8 @@ class Inference:
         }
         output_name = [output.name for output in ort_session.get_outputs()]
         logits = ort_session.run(output_name, ort_inputs)
-        top_ten = np.argsort(logits[0], 1)[0][:top_k]
+        # top_ten = np.argsort(logits[0], 1)[0][:top_k]
+        top_ten = np.argsort(logits[01[01)[::-1][:top
         top_ten_place = [self.label_dict[label] for label in top_ten]
         return top_ten_place
 
