@@ -1,6 +1,7 @@
 import io
 import base64
 
+import json
 import onnxruntime
 import cv2
 import torch
@@ -11,6 +12,8 @@ from fastapi import FastAPI, HTTPException, Body
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional
+from fastapi.middleware.cors import CORSMiddleware
+
 
 class SearchRequest(BaseModel):
     image: str = Field(..., description="Base64 encoded image string")
@@ -26,19 +29,19 @@ class Inference:
                            21: '남대문 갈치조림골목', 22: '남산 야외식물원', 23: '남산골한옥마을', 24: '남산예장공원', 25: '내원사(서울)',
                            26: '노들섬', 27: '답십리 고미술상가', 28: '답십리 영화의 거리', 29: '대원군별장 (석파정)', 30: '대학로',
                            31: '덕수궁', 32: '도선사(서울)', 33: '동대문 문구완구거리', 34: '동대문디자인플라자(DDP)', 35: '동대문역사문화공원',
-                           36: '롯데몰 김포공항점스카이파크', 37: '롯데월드타워 서울스카이', 38: '명동', 39: '미어캣파크', 40: '반공 청년운동 순국 열사 기념비',
+                           36: '롯데몰 김포공항점스카이파크', 37: '롯데월드타워 서울스카이', 38: '명동', 39: '미��캣파크', 40: '반공 청년운동 순국 열사 기념비',
                            41: '반포 서래섬', 42: '반포한강공원', 43: '백인제가옥', 44: '보광사 보광선원(서울)', 45: '보라매안전체험관',
                            46: '부암동', 47: '북촌전망대', 48: '북한산국립공원(서울)', 49: '불암산', 50: '브이알존 엑스 코엑스 직영점',
                            51: '비우당', 52: '사직공원(서울)', 53: '산마루놀이터', 54: '삼성 강남', 55: '서울 경교장',
                            56: '서울 구 러시아공사관', 57: '서울 대한의원', 58: '서울 문묘와 성균관', 59: '서울 삼각지 대구탕 골목', 60: '서울 석촌동 고분군',
                            61: '서울 암사동 유적', 62: '서울 약현성당', 63: '서울 영휘원(순헌황귀비)과 숭인원(이진)', 64: '서울 우정총국', 65: '서울 의릉(경종,선의왕후) [유네스코 세계유산]',
-                           66: '서울 정동교회', 67: '서울 풍납동 토성', 68: '서울로 7017', 69: '서울새활용플라자', 70: '서울식물원',
+                           66: '서울 정동교회', 67: '���울 풍납동 토성', 68: '서울로 7017', 69: '서울새활용플라자', 70: '서울식물원',
                            71: '세종대왕 동상', 72: '세종로공원', 73: '소림사(서울)', 74: '수도박물관', 75: '수락산',
                            76: '순명비유강원석물', 77: '순정효황후윤씨친가', 78: '승동교회', 79: '쌈지길', 80: '압구정 로데오거리',
                            81: '양화한강공원', 82: '여의도공원', 83: '연산군묘', 84: '연세로', 85: '열린송현녹지광장',
                            86: '우이동 먹거리마을', 87: '유관순동상', 88: '응암동 감자국 거리', 89: '이종석별장', 90: '이촌한강공원',
                            91: '이태원 앤틱 가구 거리', 92: '인사동', 93: '인왕사(서울)', 94: '일자산자연공원', 95: '자생식물학습장',
-                           96: '잠실한강공원', 97: '장수마을', 98: '장충단공원', 99: '절두산 순교성지', 100: '정법사(서울)',
+                           96: '잠실한강공원', 97: '장수마을', 98: '장충단공원', 99: '절두산 순교성지', 100: '��법사(서울)',
                            101: '종로 청계 관광특구', 102: '종로3가 포장마차 거리', 103: '종묘 [유네스코 세계유산]', 104: '중랑장미공원',
                            105: '창경궁', 106: '창경궁대온실', 107: '창덕궁', 108: '창의문(자하문)', 109: '천도교중앙대교당', 110: '청계천 버들습지',
                            111: '청계천', 112: '청량사(서울)', 113: '청와대', 114: '초안산', 115: '최순우 옛집', 116: '충무공 이순신 동상', 117: '코코넛박스',
@@ -115,6 +118,14 @@ class Inference:
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allow all headers
+)
+
 @app.post("/search", response_class=JSONResponse)
 async def search_image(request: SearchRequest = Body(...)):
     inf = Inference()
@@ -126,6 +137,23 @@ async def search_image(request: SearchRequest = Body(...)):
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
 
     return JSONResponse(content={"results": result})
+
+@app.get("/list")
+async def get_list():
+    try:
+        with open("list.json", "r", encoding="utf-8") as file:
+            data = json.load(file)
+        return JSONResponse(content=data)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="list.json not found")
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="Error decoding JSON")
+
+
+@app.get("/health")
+async def health_check():
+    return JSONResponse(content={"status": "OK"}, status_code=200)
+
 
 if __name__ == "__main__":
     import uvicorn
